@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.553">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Johannes Schwenke">
+
+<title>Data-Cleaning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Data-Cleaning_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Data-Cleaning_files/libs/quarto-html/quarto.js"></script>
+<script src="Data-Cleaning_files/libs/quarto-html/popper.min.js"></script>
+<script src="Data-Cleaning_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Data-Cleaning_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Data-Cleaning_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Data-Cleaning_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Data-Cleaning_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Data-Cleaning_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Data-Cleaning_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="Data-Cleaning_files/libs/tabwid-1.1.3/tabwid.css" rel="stylesheet">
+
+<script src="Data-Cleaning_files/libs/tabwid-1.1.3/tabwid.js"></script>
+
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Data-Cleaning</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Johannes Schwenke </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+</section>
+<section id="data-overview" class="level2">
+<h2 class="anchored" data-anchor-id="data-overview">Data Overview</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>data_strategy1_clean <span class="ot">&lt;-</span> data_strategy1 <span class="sc">|&gt;</span> </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">#renaming columns</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename_with</span>(</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">case_when</span>(</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_detect</span>(., <span class="st">"Database.*named"</span>) <span class="sc">~</span> <span class="fu">str_c</span>(<span class="st">"nameDatabase"</span>, <span class="fu">str_extract</span>(., <span class="st">"</span><span class="sc">\\</span><span class="st">d"</span>)),</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_detect</span>(., <span class="st">"Database.*link"</span>) <span class="sc">~</span> <span class="fu">str_c</span>(<span class="st">"linkDatabase"</span>, <span class="fu">str_extract</span>(., <span class="st">"</span><span class="sc">\\</span><span class="st">d"</span>)),</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_detect</span>(., <span class="st">"Database.*country.countries*"</span>) <span class="sc">~</span> <span class="fu">str_c</span>(<span class="st">"countryDatabase"</span>, <span class="fu">str_extract</span>(., <span class="st">"</span><span class="sc">\\</span><span class="st">d"</span>)),</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_detect</span>(., <span class="st">"Database.*kind.of.data*"</span>) <span class="sc">~</span> <span class="fu">str_c</span>(<span class="st">"dataTypeDatabase"</span>, <span class="fu">str_extract</span>(., <span class="st">"</span><span class="sc">\\</span><span class="st">d"</span>)),</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_detect</span>(., <span class="st">"Database.*publicly*"</span>) <span class="sc">~</span> <span class="fu">str_c</span>(<span class="st">"dataAvailabilityDatabase"</span>, <span class="fu">str_extract</span>(., <span class="st">"</span><span class="sc">\\</span><span class="st">d"</span>)),</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_detect</span>(., <span class="st">"Database.*data.collection*"</span>) <span class="sc">~</span> <span class="fu">str_c</span>(<span class="st">"statusDataCollectionDatabase"</span>, <span class="fu">str_extract</span>(., <span class="st">"</span><span class="sc">\\</span><span class="st">d"</span>)),</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> .</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="co">#format Date</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Date.of.publication =</span> <span class="fu">as.Date</span>(Date.of.publication, <span class="at">format =</span> <span class="st">"%d.%m.%Y"</span>), </span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="co">#uniform database names       </span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">across</span>(<span class="fu">starts_with</span>(<span class="st">"nameDatabase"</span>), <span class="sc">~</span><span class="fu">case_when</span>(</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(., <span class="st">"Switzerland"</span>) <span class="sc">~</span> <span class="st">"Hospital-based surveillance of COVID-19 and influenza cases in CH"</span>,</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(., <span class="st">"(VHA)"</span>) <span class="sc">|</span> <span class="fu">str_detect</span>(., <span class="st">"(VA-OMOP)"</span>) <span class="sc">~</span> <span class="st">"Department of Veterans Health Administration (VHA) healthcare system"</span>,</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(., <span class="st">"KPSC"</span>) <span class="sc">~</span> <span class="st">"Kaiser Permanente Southern California (KPSC)"</span>,</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(., <span class="st">"CUIMC"</span>) <span class="sc">~</span> <span class="st">"New York-Presbyterian Columbia University Irving Medical Center (NYP-CUIMC)"</span>,</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(., <span class="st">"Covid.*HGI"</span>) <span class="sc">~</span> <span class="st">"Covid 19 HGI"</span>,</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(., <span class="st">"Mount Sinai"</span>) <span class="sc">~</span> <span class="st">"Mount Sinai Health System"</span>,</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(., <span class="st">"Diagnosis Procedure Combination database"</span>) <span class="sc">~</span> <span class="st">"DPC Japan"</span>,</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> .</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  ))) <span class="sc">|&gt;</span> </span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="co">#replace "" with NA if column is character</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">where</span>(is.character), <span class="sc">~</span><span class="fu">na_if</span>(., <span class="st">""</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  <span class="co">#convert to long format</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">cols =</span> <span class="fu">matches</span>(<span class="st">"Database</span><span class="sc">\\</span><span class="st">d$"</span>),</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_to =</span> <span class="fu">c</span>(<span class="st">".value"</span>, <span class="st">"database_number"</span>),</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_pattern =</span> <span class="st">"(.+Database)(</span><span class="sc">\\</span><span class="st">d)"</span>,</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_to =</span> <span class="st">"value"</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(nameDatabase <span class="sc">!=</span> <span class="st">""</span>)</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a><span class="co">#Check how different countries per database</span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>data_strategy1_clean <span class="sc">|&gt;</span> </span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(nameDatabase) <span class="sc">|&gt;</span> </span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">n_unique_counties =</span> <span class="fu">n_distinct</span>(countryDatabase, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(n_unique_counties)) <span class="sc">|&gt;</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n_unique_counties <span class="sc">&gt;</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(nameDatabase) <span class="sc">|&gt;</span> </span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() <span class="co">#only NI, no other database has different countries</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "NI"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#check for multiple links per database</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>data_strategy1_clean <span class="sc">|&gt;</span> </span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(nameDatabase) <span class="sc">|&gt;</span> </span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">n_unique_links =</span> <span class="fu">n_distinct</span>(linkDatabase, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(n_unique_links)) <span class="sc">|&gt;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n_unique_links <span class="sc">&gt;</span> <span class="dv">1</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(nameDatabase) <span class="sc">|&gt;</span> <span class="fu">unique</span>() </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Department of Veterans Health Administration (VHA) healthcare system"
+[2] "CORIST Collaboration"                                                </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#VHA and Corist have more than 1 link</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#check for different dataTypeDatabase per database</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>data_strategy1_clean <span class="sc">|&gt;</span> </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(nameDatabase) <span class="sc">|&gt;</span> </span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">n_unique_dataTypes =</span> <span class="fu">n_distinct</span>(dataTypeDatabase, </span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>                                         <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(n_unique_dataTypes)) <span class="sc">|&gt;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n_unique_dataTypes <span class="sc">&gt;</span> <span class="dv">1</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(nameDatabase) <span class="sc">|&gt;</span> </span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() <span class="co">#only NI</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "NI"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#check for different dataAvailabilityDatabase per database</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#for some reason missing values from covidence are coded as "Other:", not as NA (except for two values) --&gt; replace "Other:" with NA</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(data_strategy1_clean<span class="sc">$</span>dataAvailabilityDatabase)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] NA        "Other: " "No"      "NI"      "Yes"    </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>data_strategy1_clean <span class="sc">|&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">dataAvailabilityDatabase =</span> <span class="fu">if_else</span>(</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(dataAvailabilityDatabase, <span class="st">"Other:"</span>), </span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cn">NA</span>, </span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    dataAvailabilityDatabase)) <span class="sc">|&gt;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(nameDatabase) <span class="sc">|&gt;</span> </span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">n_unique_dataAvailability =</span> <span class="fu">n_distinct</span>(</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    dataAvailabilityDatabase,</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(n_unique_dataAvailability)) <span class="sc">|&gt;</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n_unique_dataAvailability <span class="sc">&gt;</span> <span class="dv">1</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(nameDatabase) <span class="sc">|&gt;</span> </span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "NI"                                                                         
+[2] "New York-Presbyterian Columbia University Irving Medical Center (NYP-CUIMC)"
+[3] "Hospital-based surveillance of COVID-19 and influenza cases in CH"          </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>  <span class="co">#NI, NYP-CUIMC, and CH Surveillance</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#check for different statusDataCollectionDatabase per database</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">#Again NAs are coded as "Other:" --&gt; replace "Other:" with NA</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>data_strategy1_clean <span class="sc">|&gt;</span> </span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">statusDataCollectionDatabase =</span> <span class="fu">if_else</span>(</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(statusDataCollectionDatabase, <span class="st">"Other:"</span>), </span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="cn">NA</span>, </span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    statusDataCollectionDatabase)) <span class="sc">|&gt;</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(nameDatabase) <span class="sc">|&gt;</span> </span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">n_unique_statusDataCollection =</span> <span class="fu">n_distinct</span>(</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    statusDataCollectionDatabase, </span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(n_unique_statusDataCollection)) <span class="sc">|&gt;</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n_unique_statusDataCollection <span class="sc">&gt;</span> <span class="dv">1</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(nameDatabase) <span class="sc">|&gt;</span> </span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() <span class="co">#only "NI"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "NI"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Continue cleaning</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>data_strategy1_clean  <span class="ot">&lt;-</span> data_strategy1_clean <span class="sc">|&gt;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(nameDatabase) <span class="sc">|&gt;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">Contacts         =</span> <span class="fu">paste</span>(Lead.author.contact.details, </span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                             <span class="at">collapse =</span> <span class="st">"; </span><span class="sc">\n\n</span><span class="st">"</span>),</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">linkDatabase     =</span> <span class="fu">if_else</span>(linkDatabase <span class="sc">==</span> <span class="st">"NI"</span> <span class="sc">|</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>                                 linkDatabase <span class="sc">==</span> <span class="st">""</span>, <span class="cn">NA</span>, linkDatabase),</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">linkDatabase     =</span> <span class="fu">paste</span>(<span class="fu">na.omit</span>(linkDatabase), <span class="at">collapse =</span> <span class="st">"; </span><span class="sc">\n</span><span class="st">"</span>),</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">linkDatabase     =</span> <span class="fu">if_else</span>(linkDatabase <span class="sc">==</span> <span class="st">""</span>, <span class="cn">NA</span>, linkDatabase),</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">countryDatabase  =</span> <span class="fu">if_else</span>(nameDatabase <span class="sc">!=</span> <span class="st">"NI"</span>,</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">first</span>(<span class="fu">na.omit</span>(countryDatabase)),</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>                               countryDatabase),</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">dataTypeDatabase =</span> <span class="fu">if_else</span>(nameDatabase <span class="sc">!=</span> <span class="st">"NI"</span>,</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">first</span>(<span class="fu">na.omit</span>(dataTypeDatabase)),</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>                               dataTypeDatabase),</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">statusDataCollectionDatabase =</span> <span class="fu">if_else</span>(</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>                                          <span class="fu">str_detect</span>(</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>                                            statusDataCollectionDatabase,</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>                                            <span class="st">"Other:"</span>), </span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>                                          <span class="cn">NA</span>, </span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>                                          statusDataCollectionDatabase),</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">statusDataCollectionDatabase =</span> <span class="fu">if_else</span>(</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>                                           nameDatabase <span class="sc">!=</span> <span class="st">"NI"</span>,</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>                                           <span class="fu">first</span>(<span class="fu">na.omit</span>(</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>                                            statusDataCollectionDatabase)),</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>                                           statusDataCollectionDatabase),</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">dataAvailabilityDatabase =</span> <span class="fu">if_else</span>(</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>                                       <span class="fu">str_detect</span>(dataAvailabilityDatabase,</span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>                                                  <span class="st">"Other:"</span>), </span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>                                       <span class="cn">NA</span>, </span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>                                       dataAvailabilityDatabase),</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">dataAvailabilityDatabase =</span> <span class="fu">case_when</span>(</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>      nameDatabase <span class="sc">==</span> <span class="st">"NI"</span> <span class="sc">~</span> dataAvailabilityDatabase,</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>      nameDatabase <span class="sc">==</span> <span class="st">"New York-Presbyterian Columbia University Irving Medical Center (NYP-CUIMC)"</span> <span class="sc">~</span> <span class="st">"No"</span>,</span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>      nameDatabase <span class="sc">==</span> <span class="st">"Hospital-based surveillance of COVID-19 and influenza cases in CH"</span> <span class="sc">~</span> <span class="st">"No"</span>,</span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fu">first</span>(<span class="fu">na.omit</span>(dataAvailabilityDatabase)))) <span class="sc">|&gt;</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>databases <span class="ot">&lt;-</span> data_strategy1_clean <span class="sc">|&gt;</span> </span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(nameDatabase, </span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>         linkDatabase, </span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>         countryDatabase, </span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>         dataTypeDatabase, </span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>         dataAvailabilityDatabase, </span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>         statusDataCollectionDatabase) <span class="sc">|&gt;</span> </span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(nameDatabase) <span class="sc">|&gt;</span></span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">1</span>)</span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a><span class="fu">flextable</span>(databases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="tabwid"><style>.cl-7c84acb2{}.cl-7c72d37a{font-family:'Arial';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-7c7a16a8{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-7c7a4862{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-7c7a4876{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-7c7a4880{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-7c84acb2"><thead><tr style="overflow-wrap:break-word;"><th class="cl-7c7a4862"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">nameDatabase</span></p></th><th class="cl-7c7a4862"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">linkDatabase</span></p></th><th class="cl-7c7a4862"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">countryDatabase</span></p></th><th class="cl-7c7a4862"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">dataTypeDatabase</span></p></th><th class="cl-7c7a4862"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">dataAvailabilityDatabase</span></p></th><th class="cl-7c7a4862"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">statusDataCollectionDatabase</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"> COVID19@Spain cohort</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://classic.clinicaltrials.gov/ct2/show/NCT04355871</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Spain</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"> Hong Kong Hospital Authority (HA)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Hong Kong</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); National registries (e.g. death registry, cancer registry, etc.)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"> Johns Hopkins CROWN Registry</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://ictr.johnshopkins.edu/covid-research-center/review-committees/cadre/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">4 Hospitals in Hubei Province, China</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: China</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">AP-HP Data Warehouse</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://eds.aphp.fr/nos-services/recherche-innovation</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">France</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Agency for Health Protection (AHP) of Milan</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Italy</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">National registries (e.g. death registry, cancer registry, etc.)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Amsterdam UMC</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">[Reuse of health care data for scientific research (amsterdamumc.org)](https://www.amsterdamumc.org/en/research/support/services-facilities/data-management/reuse-of-health-care-data-for-scientific-research.htm)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Netherlands</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Avon Longitudinal Study of Parents and Children (ALSPAC)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Bellvitge University Hospital Data Warehouse</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Spain</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">CORIST Collaboration</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.ahajournals.org/doi/10.1161/HYPERTENSIONAHA.120.15370</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Italy</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">CORONADO Study</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://clinicaltrials.gov/study/NCT04324736?tab=table</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">France</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">COVID-ALEH Registry</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://clinicaltrials.gov/study/NCT04358380</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Latin America: Argentina, Brazil, Chile, Colombia, Dominican Republic, Ecuador, Guatemala, Mexico, Paraguay, Peru, Uruguay</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">COVIREGI-JP</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://rebind.ncgm.go.jp/coviregi/</span><br><span class="cl-7c72d37a">https://academic.oup.com/cid/article/73/11/e3677/5912544</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Japan</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); Disease specific network (cohort study)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Clinical </span><br><span class="cl-7c72d37a">Data Analysis and Reporting System (CDARS)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Hong Kong</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Clinical Practice Research Datalink (CPRD)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.cprd.com/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">UK</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Outpatient</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Community-Acquired Pneumonia Organization (CAPO) International Cohort study</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Not stated, but "12 countries"</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Covid 19 HGI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Covid-Clinic-Toul cohort</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.sciencedirect.com/science/article/pii/S0248866320303490</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">France</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">DPC Japan</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.jstage.jst.go.jp/article/ace/1/3/1_76/_pdf#:~:text=The%20Diagnosis%20Procedure%20Combination%20(DPC,system%20(DPC%2F%20PDPS).</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Japan</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">DRC Ministry of Health’s COVID-19 Multi-Sectoral Response Committee database</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Democratic Republic Congo</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); National registries (e.g. death registry, cancer registry, etc.)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Danish National Patient Register</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Denmark</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); National registries (e.g. death registry, cancer registry, etc.)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Department of Veterans Health Administration (VHA) healthcare system</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://virec.research.va.gov/Non-VA-Researchers/Info_for_NonVA_Researchers.pdf; </span><br><span class="cl-7c72d37a">https://www.data.va.gov/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">ESMO-CoCARE</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.esmo.org/covid-19-and-cancer/registries-studies-and-surveys/esmo-cocare-registry</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: World-Wide (UK, Spain, Switzerland, Russia, South Korea, Philippines, ...)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); Disease specific network (cohort study)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Emergency-Rheum</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: China</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">French COVID Cohort</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://clinicaltrials.gov/study/NCT04262921</span><br><span class="cl-7c72d37a">https://orchestra-cohort.eu/cohort-statistics/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">France</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); Disease specific network (cohort study)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">HIRA-Covid19</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.hira-covid19.net/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">South Korea</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Insurance/claims data (prescription data)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">HM Hospitales</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.internationalhm.com/en/investigation/investigation-lines</span><br><br><span class="cl-7c72d37a">https://www.hmhospitales.com/SiteAssets/coronavirus/covid-data-save-lives/english-version/Aplication_for_acces_to_Dataset_V3%2520-%2520English.docx&amp;ved=2ahUKEwj4mPa-1qiFAxWcEhAIHVK6C5cQFnoECBIQAQ&amp;usg=AOvVaw3UYA7T8wISBeLQPSGy2Ioz</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Spain</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">HOMERuN Network</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://hospitalinnovate.org/projects/completed-projects/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Harvard Pilgrim Health Care Institute (HCA Healthcare Networks)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Health Insurance Review and Assessment Service (HIRA) database</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">hira-covid19.net is offline.</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">South Korea</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Insurance/claims data (prescription data)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Health and Economic Modelling of AMR in Australia (HEMAA) population-level simulation model </span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Australia</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: "Population-level simulation model"</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">HealthVerity</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://healthverity.com/mastersets/covid-19/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Insurance/claims data (prescription data)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital-based surveillance of COVID-19 and influenza cases in CH</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.unige.ch/medecine/hospital-covid/; </span><br><span class="cl-7c72d37a">https://www.unige.ch/medecine/hospital-covid/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Switzerland</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospitalized Adult Influenza Vaccine Effectiveness Network (HAIVEN)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.cdc.gov/flu/vaccines-work/haiven.html</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">IQVIA databases</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.iqvia.com/solutions/real-world-evidence/real-world-data-and-insights#HealthDataCatalog</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA; Other: worldwide</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); Insurance/claims data (prescription data)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">ISACS-COVID-19</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://clinicaltrials.gov/study/NCT05188612</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Europe</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">International Study of Inflammation in COVID‐19</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://clinicaltrials.gov/study/NCT04818866</span><br><br><span class="cl-7c72d37a">https://hayek.lab.medicine.umich.edu/research/covid19</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: International</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">J-RECOVER study group</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.jstage.jst.go.jp/article/ace/4/3/4_22012/_article</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Japan</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">KPNC Virtual Data Warehouse on exposures, outcomes, and covariates of interest</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Kaiser Permanente Southern California (KPSC)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.kp-scalresearch.org/aboutus/resources-capabilities/information-and-data-resources/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Korean National Health Insurance Service (NHIS) database</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">South Korea</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Insurance/claims data (prescription data)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">MGH Covid-19 Data Registry</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://rc.partners.org/about/projects-initiatives/new-covid-19-research-tools-researchers/covid-19-external-data-sets</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Medicare</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Insurance/claims data (prescription data)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Mi-COVID19 Initiative</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.mi-hms.org/quality-initiatives/mi-covid19-initiative-retired</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Mount Sinai Health System</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://labs.icahn.mssm.edu/msdw/ (not currently working)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Mout Sinai Health System Data Warehouse</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://labs.icahn.mssm.edu/msdw/data-sources/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: China</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">National COVID Cohort Collaborative (N3C)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://covid.cd2h.org/</span><br><br><span class="cl-7c72d37a">Data dictionary: https://ncats.nih.gov/sites/default/files/OMOP_CDM_COVID.pdf</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); Disease specific network (cohort study)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">National Health Insurance Research Database (NHIRD)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://nhird.nhri.edu.tw/date_01_en.html</span><br><span class="cl-7c72d37a">https://www.dovepress.com/taiwans-national-health-insurance-research-database-past-and-future-peer-reviewed-fulltext-article-CLEP</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Taiwan</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Insurance/claims data (prescription data)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">National Hospital Organization (NHO) Japan database</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://pubmed.ncbi.nlm.nih.gov/35615723/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Japan</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">New York-Presbyterian Columbia University Irving Medical Center (NYP-CUIMC)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Northwestern Medicine Electronic Data </span><br><span class="cl-7c72d37a">Warehouse (NMEDW) </span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.feinberg.northwestern.edu/research/cores/units/edw.html</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">OnCovid</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://imperialbrc.nihr.ac.uk/research/infection/covid-19/covid-19-ongoing-studies/oncovid/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Europa wide</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Disease specific network (cohort study)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">PREDI-CO</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://clinicaltrials.gov/study/NCT04316949</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Italy</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Premier Healthcare Database</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://offers.premierinc.com/rs/381-NBB-525/images/PremierHealthcareDatabaseWhitepaper.pdf</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Insurance/claims data (prescription data)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Providence-Swedish healthcare system </span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Insurance/claims data (prescription data)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Qatar Cerner-system advanced</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Qatar</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); National registries (e.g. death registry, cancer registry, etc.)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">REACTing (the network, not the database)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.iame-research.center/associated-organisations/reacting-2/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">France; Other: Luxembourg</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Rhode Island Hospital</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Rush University Hospital Data Warehouse</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.rushu.rush.edu/research/resources-researchers/data-management</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Swedish COVID-19 Investigation for Future Insights</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.gu.se/en/research/scifi-pearl</span><br><br><span class="cl-7c72d37a">https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8331198/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Sweden</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">National registries (e.g. death registry, cancer registry, etc.); Other: Outpatient</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">System for Research in Primary Care (SIDIAP)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Spain</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); Other: Outpatient data</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">The Civil Registration system</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Denmark</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">National registries (e.g. death registry, cancer registry, etc.)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">The Danish National Prescription Registry</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://pure.au.dk/portal/en/publications/the-danish-national-prescription-registry</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Denmark</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Outpatient prescriptions</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">TriNetX database</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://trinetx.com/solutions/real-world-datasets/#s_2</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: Global</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record); Other: Outpatient?</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Two University Hospitals in Wuhan Region</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Other: China</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">UCLA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">[Design Study | ResearchGo | UCLA](https://www.researchgo.ucla.edu/design-study)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">University of Minnesota Clinical and Translational Institute (CTSI) data repository</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://ctsi.umn.edu/services/data-informatics/find-access-data</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">University of Washington (UW) Enterprise Data Warehouse</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://itconnect.uw.edu/tools-services-support/data-reporting/data/enterprise-data-warehouse/</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Vizient Clinical Data Base® (CDB)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">https://www.vizientinc.com/what-we-do/operations-and-quality/clinical-data-base</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Insurance/claims data (prescription data)</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4876"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Yes</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7c7a4880"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">enterprise data warehouse (EDW) at Intermountain Healthcare</span></p></td><td class="cl-7c7a4880"><p class="cl-7c7a16a8"><span class="cl-7c72d37a"></span></p></td><td class="cl-7c7a4880"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">USA</span></p></td><td class="cl-7c7a4880"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">Hospital data (electronic health record)</span></p></td><td class="cl-7c7a4880"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">No</span></p></td><td class="cl-7c7a4880"><p class="cl-7c7a16a8"><span class="cl-7c72d37a">NI</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

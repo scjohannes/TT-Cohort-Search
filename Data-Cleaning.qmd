@@ -1,0 +1,181 @@
+---
+title: "Data-Cleaning"
+author: "Johannes Schwenke"
+format: html
+editor: visual
+---
+
+## Setup
+```{r}
+#| echo: false
+#| warning: false
+library(tidyverse)
+library(kableExtra)
+library(flextable)
+
+data_strategy1 <- read.csv("data/2024-08-19-Strategy1-Export.csv")
+data_strategy2 <- read.csv("data/2024-08-19-Strategy2-Export.csv")
+```
+
+## Data Overview
+
+```{r}
+data_strategy1_clean <- data_strategy1 |> 
+  
+  #renaming columns
+  rename_with(
+    ~ case_when(
+      str_detect(., "Database.*named") ~ str_c("nameDatabase", str_extract(., "\\d")),
+      str_detect(., "Database.*link") ~ str_c("linkDatabase", str_extract(., "\\d")),
+      str_detect(., "Database.*country.countries*") ~ str_c("countryDatabase", str_extract(., "\\d")),
+      str_detect(., "Database.*kind.of.data*") ~ str_c("dataTypeDatabase", str_extract(., "\\d")),
+      str_detect(., "Database.*publicly*") ~ str_c("dataAvailabilityDatabase", str_extract(., "\\d")),
+      str_detect(., "Database.*data.collection*") ~ str_c("statusDataCollectionDatabase", str_extract(., "\\d")),
+      TRUE ~ .
+    )
+  ) |> 
+  
+  #format Date
+  mutate(Date.of.publication = as.Date(Date.of.publication, format = "%d.%m.%Y"), 
+  
+  #uniform database names       
+  across(starts_with("nameDatabase"), ~case_when(
+    str_detect(., "Switzerland") ~ "Hospital-based surveillance of COVID-19 and influenza cases in CH",
+    str_detect(., "(VHA)") | str_detect(., "(VA-OMOP)") ~ "Department of Veterans Health Administration (VHA) healthcare system",
+    str_detect(., "KPSC") ~ "Kaiser Permanente Southern California (KPSC)",
+    str_detect(., "CUIMC") ~ "New York-Presbyterian Columbia University Irving Medical Center (NYP-CUIMC)",
+    str_detect(., "Covid.*HGI") ~ "Covid 19 HGI",
+    str_detect(., "Mount Sinai") ~ "Mount Sinai Health System",
+    str_detect(., "Diagnosis Procedure Combination database") ~ "DPC Japan",
+    TRUE ~ .
+  ))) |> 
+  
+  #replace "" with NA if column is character
+  mutate(across(where(is.character), ~na_if(., ""))) |>
+  
+  #convert to long format
+  pivot_longer(
+    cols = matches("Database\\d$"),
+    names_to = c(".value", "database_number"),
+    names_pattern = "(.+Database)(\\d)",
+    values_to = "value"
+  ) |> 
+  filter(nameDatabase != "")
+
+#Check how different countries per database
+data_strategy1_clean |> 
+  group_by(nameDatabase) |> 
+  mutate(n_unique_counties = n_distinct(countryDatabase, na.rm = TRUE)) |> 
+  arrange(desc(n_unique_counties)) |>
+  filter(n_unique_counties > 1) |>
+  pull(nameDatabase) |> 
+  unique() #only NI, no other database has different countries
+
+#check for multiple links per database
+data_strategy1_clean |> 
+  group_by(nameDatabase) |> 
+  mutate(n_unique_links = n_distinct(linkDatabase, na.rm = TRUE)) |> 
+  arrange(desc(n_unique_links)) |>
+  filter(n_unique_links > 1) |> 
+  pull(nameDatabase) |> unique() 
+#VHA and Corist have more than 1 link
+
+#check for different dataTypeDatabase per database
+data_strategy1_clean |> 
+  group_by(nameDatabase) |> 
+  mutate(n_unique_dataTypes = n_distinct(dataTypeDatabase, 
+                                         na.rm = TRUE)) |>
+  arrange(desc(n_unique_dataTypes)) |>
+  filter(n_unique_dataTypes > 1) |> 
+  pull(nameDatabase) |> 
+  unique() #only NI
+
+#check for different dataAvailabilityDatabase per database
+#for some reason missing values from covidence are coded as "Other:", not as NA (except for two values) --> replace "Other:" with NA
+unique(data_strategy1_clean$dataAvailabilityDatabase)
+
+data_strategy1_clean |>
+  mutate(dataAvailabilityDatabase = if_else(
+    str_detect(dataAvailabilityDatabase, "Other:"), 
+    NA, 
+    dataAvailabilityDatabase)) |>
+  group_by(nameDatabase) |> 
+  mutate(n_unique_dataAvailability = n_distinct(
+    dataAvailabilityDatabase,
+    na.rm = TRUE)) |> 
+  arrange(desc(n_unique_dataAvailability)) |>
+  filter(n_unique_dataAvailability > 1) |> 
+  pull(nameDatabase) |> 
+  unique() 
+  #NI, NYP-CUIMC, and CH Surveillance
+
+#check for different statusDataCollectionDatabase per database
+#Again NAs are coded as "Other:" --> replace "Other:" with NA
+data_strategy1_clean |> 
+  mutate(statusDataCollectionDatabase = if_else(
+    str_detect(statusDataCollectionDatabase, "Other:"), 
+    NA, 
+    statusDataCollectionDatabase)) |>
+  group_by(nameDatabase) |> 
+  mutate(n_unique_statusDataCollection = n_distinct(
+    statusDataCollectionDatabase, 
+    na.rm = TRUE)) |>
+  arrange(desc(n_unique_statusDataCollection)) |>
+  filter(n_unique_statusDataCollection > 1) |> 
+  pull(nameDatabase) |> 
+  unique() #only "NI"
+
+#Continue cleaning
+data_strategy1_clean  <- data_strategy1_clean |>
+  group_by(nameDatabase) |>
+  mutate(
+    Contacts         = paste(Lead.author.contact.details, 
+                             collapse = "; \n\n"),
+    linkDatabase     = if_else(linkDatabase == "NI" |
+                                 linkDatabase == "", NA, linkDatabase),
+    linkDatabase     = paste(na.omit(linkDatabase), collapse = "; \n"),
+    linkDatabase     = if_else(linkDatabase == "", NA, linkDatabase),
+    countryDatabase  = if_else(nameDatabase != "NI",
+                               first(na.omit(countryDatabase)),
+                               countryDatabase),
+    dataTypeDatabase = if_else(nameDatabase != "NI",
+                               first(na.omit(dataTypeDatabase)),
+                               dataTypeDatabase),
+    statusDataCollectionDatabase = if_else(
+                                          str_detect(
+                                            statusDataCollectionDatabase,
+                                            "Other:"), 
+                                          NA, 
+                                          statusDataCollectionDatabase),
+    statusDataCollectionDatabase = if_else(
+                                           nameDatabase != "NI",
+                                           first(na.omit(
+                                            statusDataCollectionDatabase)),
+                                           statusDataCollectionDatabase),
+    dataAvailabilityDatabase = if_else(
+                                       str_detect(dataAvailabilityDatabase,
+                                                  "Other:"), 
+                                       NA, 
+                                       dataAvailabilityDatabase),
+    dataAvailabilityDatabase = case_when(
+      nameDatabase == "NI" ~ dataAvailabilityDatabase,
+      nameDatabase == "New York-Presbyterian Columbia University Irving Medical Center (NYP-CUIMC)" ~ "No",
+      nameDatabase == "Hospital-based surveillance of COVID-19 and influenza cases in CH" ~ "No",
+      TRUE ~ first(na.omit(dataAvailabilityDatabase)))) |>
+  ungroup()
+
+  
+
+databases <- data_strategy1_clean |> 
+  select(nameDatabase, 
+         linkDatabase, 
+         countryDatabase, 
+         dataTypeDatabase, 
+         dataAvailabilityDatabase, 
+         statusDataCollectionDatabase) |> 
+  group_by(nameDatabase) |>
+  slice_head(n = 1)
+
+flextable(databases)
+```
+
