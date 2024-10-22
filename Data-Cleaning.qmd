@@ -1,11 +1,10 @@
 ---
-title: "Data-Cleaning"
+title: "Inpatient databases"
 author: "Johannes Schwenke"
+date: today
 format: html
 editor: visual
 ---
-
-## Setup
 
 ```{r}
 #| echo: false
@@ -18,15 +17,16 @@ data_strategy1 <- read.csv("data/2024-08-19-Strategy1-Export.csv")
 data_strategy2 <- read.csv("data/2024-08-19-Strategy2-Export.csv")
 ```
 
-## Data Overview
+## PRISMA Flowchart
 
-TODOS
+![](images/clipboard-3644552594.png)
 
--   Clean Strategy 2
-
--   Decide what to do with databases that don't have a name ("NI")
+## Identified data bases
 
 ```{r}
+#| echo: false
+#| output: false
+
 data_strategy1_clean <- data_strategy1 |> 
   
   #renaming columns
@@ -45,7 +45,7 @@ data_strategy1_clean <- data_strategy1 |>
   #format Date
   mutate(Date.of.publication = as.Date(Date.of.publication, format = "%d.%m.%Y"), 
   
-  #uniform database names       
+  #make database names uniform       
   across(starts_with("nameDatabase"), ~case_when(
     str_detect(., "Switzerland") ~ "Hospital-based surveillance of COVID-19 and influenza cases in CH",
     str_detect(., "(VHA)") | str_detect(., "(VA-OMOP)") ~ "Department of Veterans Health Administration (VHA) healthcare system",
@@ -69,7 +69,7 @@ data_strategy1_clean <- data_strategy1 |>
   ) |> 
   filter(nameDatabase != "")
 
-#Check how different countries per database
+#Check how many different countries per database
 data_strategy1_clean |> 
   group_by(nameDatabase) |> 
   mutate(n_unique_counties = n_distinct(countryDatabase, na.rm = TRUE)) |> 
@@ -176,13 +176,34 @@ data_strategy1_clean  <- data_strategy1_clean |>
 databases <- data_strategy1_clean |> 
   filter(nameDatabase != "NI") |> 
   select(nameDatabase, 
-         linkDatabase, 
+         #linkDatabase, 
          countryDatabase, 
          dataTypeDatabase, 
          dataAvailabilityDatabase, 
          statusDataCollectionDatabase) |> 
-  group_by(nameDatabase) |>
-  slice_head(n = 1)
+  #remove "Database" from end of all colum names
+  rename_with(~gsub("Database$", "", .)) |> 
+  group_by(name) |> 
+  mutate(n = n()) |> 
+  slice_head(n = 1) |> 
+  arrange(desc(n))
+```
 
+Number of databases : `r nrow(databases)`
+
+```{r}
+#| echo: false
 flextable(databases)
 ```
+
+## What next?
+
+Analogous approach to Sauer et al. ?
+
+[![Sauer, Christopher M., Tariq A. Dam, Leo A. Celi, Martin Faltys, Miguel A. A. de la Hoz, Lasith Adhikari, Kirsten A. Ziesemer, Armand Girbes, Patrick J. Thoral, and Paul Elbers. 2022. “Systematic Review and Comparison of Publicly Available ICU Data Sets-A Decision Guide for Clinicians and Data Scientists.” Critical Care Medicine 50 (6): e581–88.](images/clipboard-2505957976.png)](https://pubmed.ncbi.nlm.nih.gov/35234175/)
+
+-   Requested access to databases, all necessary legal and ethical approvals
+
+-   Defined a priori list of database elements to document and extract
+
+-   $\rightarrow$ Descriptive analyses
