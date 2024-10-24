@@ -1,36 +1,48 @@
 ---
 title: "Inpatient databases"
-author: "Johannes Schwenke"
+author: "Johannes M. Schwenke, Thale P. Brown, Corina S. Ruegg, Alain Amstutz, ..."
 date: today
-format: html
+number-sections: true
+format: PrettyPDF-pdf
 editor: visual
+bibliography: references.bib
 ---
 
-```{r}
+```{r setup-import}
 #| echo: false
 #| warning: false
 library(tidyverse)
 library(kableExtra)
 library(flextable)
+library(googlesheets4)
+library(patchwork)
+
+options(
+  # set default colors in ggplot2 to colorblind-friendly
+  # Okabe-Ito and Viridis palettes
+  ggplot2.discrete.colour = ggokabeito::palette_okabe_ito(),
+  ggplot2.discrete.fill = ggokabeito::palette_okabe_ito(),
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis",
+  # set theme font and size
+  book.base_family = "sans",
+  book.base_size = 14
+)
 
 data_strategy1 <- read.csv("data/2024-08-19-Strategy1-Export.csv")
 data_strategy2 <- read.csv("data/2024-08-19-Strategy2-Export.csv")
 ```
 
-## PRISMA Flowchart
-
-![](images/clipboard-3644552594.png)
-
-## Identified data bases
-
-```{r}
+```{r custom-functions}
 #| echo: false
-#| output: false
 
-data_strategy1_clean <- data_strategy1 |> 
-  
-  #renaming columns
-  rename_with(
+#custom function
+# functions which renames the column headers from the entire question to something shorter.
+# the function  also extracts the first digit in the string and appends it, in case multiple databases are used per study
+
+rename_questions <- function(df){
+  df |> 
+    rename_with(
     ~ case_when(
       str_detect(., "Database.*named") ~ str_c("nameDatabase", str_extract(., "\\d")),
       str_detect(., "Database.*link") ~ str_c("linkDatabase", str_extract(., "\\d")),
@@ -40,22 +52,80 @@ data_strategy1_clean <- data_strategy1 |>
       str_detect(., "Database.*data.collection*") ~ str_c("statusDataCollectionDatabase", str_extract(., "\\d")),
       TRUE ~ .
     )
-  ) |> 
-  
-  #format Date
-  mutate(Date.of.publication = as.Date(Date.of.publication, format = "%d.%m.%Y"), 
-  
-  #make database names uniform       
+  )
+}
+
+make_db_names_uniform <- function(df){
+  df |> 
+    mutate(
+      #make database names uniform       
   across(starts_with("nameDatabase"), ~case_when(
     str_detect(., "Switzerland") ~ "Hospital-based surveillance of COVID-19 and influenza cases in CH",
     str_detect(., "(VHA)") | str_detect(., "(VA-OMOP)") ~ "Department of Veterans Health Administration (VHA) healthcare system",
     str_detect(., "KPSC") ~ "Kaiser Permanente Southern California (KPSC)",
     str_detect(., "CUIMC") ~ "New York-Presbyterian Columbia University Irving Medical Center (NYP-CUIMC)",
-    str_detect(., "Covid.*HGI") ~ "Covid 19 HGI",
+    str_detect(., "(?i)covid.*hgi") ~ "Covid 19 HGI",
     str_detect(., "Mount Sinai") ~ "Mount Sinai Health System",
     str_detect(., "Diagnosis Procedure Combination database") ~ "DPC Japan",
+    str_detect(., "AP-?HP") ~ "AP-HP Datawarehouse",
     TRUE ~ .
-  ))) |> 
+      )
+    )
+  )
+}
+
+create_datatype_columns <- function(data) {
+ data |> 
+   mutate(
+     type_ehr = case_when(
+       str_detect(dataTypeDatabase, "Hospital data \\(electronic health record\\)") ~ 1,
+       !is.na(dataTypeDatabase) ~ 0,
+       TRUE ~ NA_real_
+     ),
+     
+     type_insurance_claims = case_when(
+       str_detect(dataTypeDatabase, "Insurance/claims data") ~ 1,
+       !is.na(dataTypeDatabase) ~ 0,
+       TRUE ~ NA_real_
+     ),
+     
+     type_dz_cohort = case_when(
+       str_detect(dataTypeDatabase, "Disease specific network") ~ 1,
+       !is.na(dataTypeDatabase) ~ 0,
+       TRUE ~ NA_real_
+     ),
+     
+     type_national_registry = case_when(
+       str_detect(dataTypeDatabase, "National registries") ~ 1,
+       !is.na(dataTypeDatabase) ~ 0,
+       TRUE ~ NA_real_
+     ),
+     
+     type_other = case_when(
+       str_detect(dataTypeDatabase, "Other:") ~ 
+         str_extract(dataTypeDatabase, "Other:.*?(?=;|$)") %>%
+         str_trim() %>%
+         str_remove("^Other: ") %>%
+         str_remove_all('"'),
+       TRUE ~ NA_character_
+     )
+   )
+}
+```
+
+```{r clean-strategy-1}
+#| echo: false
+#| output: false
+
+data_strategy1_clean <- data_strategy1 |> 
+  #custom function to rename columns
+  rename_questions() |> 
+  
+  #format Date
+  mutate(Date.of.publication = as.Date(Date.of.publication, format = "%d.%m.%Y")) |>
+  
+  #function which standardizes names
+  make_db_names_uniform() |>  
   
   #replace "" with NA if column is character
   mutate(across(where(is.character), ~na_if(., ""))) |>
@@ -132,6 +202,8 @@ data_strategy1_clean |>
   pull(nameDatabase) |> 
   unique() #only "NI"
 
+
+
 #Continue cleaning
 data_strategy1_clean  <- data_strategy1_clean |>
   group_by(nameDatabase) |>
@@ -169,18 +241,19 @@ data_strategy1_clean  <- data_strategy1_clean |>
       nameDatabase == "New York-Presbyterian Columbia University Irving Medical Center (NYP-CUIMC)" ~ "No",
       nameDatabase == "Hospital-based surveillance of COVID-19 and influenza cases in CH" ~ "No",
       TRUE ~ first(na.omit(dataAvailabilityDatabase)))) |>
-  ungroup()
+  ungroup() 
 
   
 
-databases <- data_strategy1_clean |> 
+databases_1 <- data_strategy1_clean |> 
   filter(nameDatabase != "NI") |> 
   select(nameDatabase, 
-         #linkDatabase, 
          countryDatabase, 
          dataTypeDatabase, 
          dataAvailabilityDatabase, 
-         statusDataCollectionDatabase) |> 
+         statusDataCollectionDatabase,
+         linkDatabase) |> 
+  create_datatype_columns() |> 
   #remove "Database" from end of all colum names
   rename_with(~gsub("Database$", "", .)) |> 
   group_by(name) |> 
@@ -189,12 +262,350 @@ databases <- data_strategy1_clean |>
   arrange(desc(n))
 ```
 
-Number of databases : `r nrow(databases)`
+```{r clean-strategy-2}
+#| echo: false
+#| output: false
+
+data_strategy2_clean <- data_strategy2 |> 
+  #custom function to rename columns
+  rename_questions() |> 
+  
+  #format Date
+  mutate(Date.of.publication = as.Date(Date.of.publication, format = "%d.%m.%Y")) |>
+  
+  #function which standardizes names
+  make_db_names_uniform() |>  
+  
+  #replace "" with NA if column is character
+  mutate(across(where(is.character), ~na_if(., ""))) |>
+  
+  #convert to long format
+  pivot_longer(
+    cols = matches("Database\\d$"),
+    names_to = c(".value", "database_number"),
+    names_pattern = "(.+Database)(\\d)",
+    values_to = "value"
+  ) |> 
+  filter(nameDatabase != "")
+
+
+
+#Check how many different countries per database
+data_strategy2_clean |> 
+  group_by(nameDatabase) |> 
+  mutate(n_unique_counties = n_distinct(countryDatabase, na.rm = TRUE)) |> 
+  arrange(desc(n_unique_counties)) |>
+  filter(n_unique_counties > 1) |>
+  pull(nameDatabase) |> 
+  unique() #only NI, no other database has different countries
+
+#check for multiple links per database
+multiple_links <- data_strategy2_clean |> 
+  group_by(nameDatabase) |> 
+  mutate(n_unique_links = n_distinct(linkDatabase, na.rm = TRUE)) |> 
+  arrange(desc(n_unique_links)) |>
+  filter(n_unique_links > 1) |> 
+  pull(nameDatabase) |> 
+  unique()
+
+if(length(multiple_links) > 0) {
+  warning("Found databases with multiple links: ", paste(multiple_links, collapse = ", "))
+}
+
+#check for different dataTypeDatabase per database
+multiple_types <- data_strategy2_clean |> 
+  group_by(nameDatabase) |> 
+  mutate(n_unique_dataTypes = n_distinct(dataTypeDatabase, 
+                                       na.rm = TRUE)) |>
+  arrange(desc(n_unique_dataTypes)) |>
+  filter(n_unique_dataTypes > 1) |> 
+  pull(nameDatabase) |> 
+  unique()
+
+if(length(multiple_types) > 0) {
+  warning("Found databases with multiple data types: ", paste(multiple_types, collapse = ", "))
+}
+
+#check for different dataAvailabilityDatabase per database
+
+multiple_availability <- data_strategy2_clean |>
+  mutate(dataAvailabilityDatabase = if_else(
+    str_detect(dataAvailabilityDatabase, "Other:"), 
+    NA, 
+    dataAvailabilityDatabase)) |>
+  group_by(nameDatabase) |> 
+  mutate(n_unique_dataAvailability = n_distinct(
+    dataAvailabilityDatabase,
+    na.rm = TRUE)) |> 
+  arrange(desc(n_unique_dataAvailability)) |>
+  filter(n_unique_dataAvailability > 1) |> 
+  pull(nameDatabase) |> 
+  unique() 
+
+if(length(multiple_availability) > 0) {
+  warning("Found databases different entries for data availability: ", paste(multiple_types, collapse = ", "))
+}
+
+#check for different statusDataCollectionDatabase per database
+#Again NAs are coded as "Other:" --> replace "Other:" with NA
+
+mutiple_collection_status <- data_strategy2_clean |> 
+  mutate(statusDataCollectionDatabase = if_else(
+    str_detect(statusDataCollectionDatabase, "Other:"), 
+    NA, 
+    statusDataCollectionDatabase)) |>
+  group_by(nameDatabase) |> 
+  mutate(n_unique_statusDataCollection = n_distinct(
+    statusDataCollectionDatabase, 
+    na.rm = TRUE)) |>
+  arrange(desc(n_unique_statusDataCollection)) |>
+  filter(n_unique_statusDataCollection > 1) |> 
+  pull(nameDatabase) |> 
+  unique()
+
+if(length(mutiple_collection_status) > 0) {
+  warning("Found databases different entries for status of data collection: ", paste(multiple_types, collapse = ", "))
+}
+
+
+#Continue cleaning
+data_strategy2_clean  <- data_strategy2_clean |>
+  group_by(nameDatabase) |>
+  mutate(
+    Contacts         = paste(Lead.author.contact.details, 
+                             collapse = "; \n\n"),
+    linkDatabase     = if_else(linkDatabase == "NI" |
+                                 linkDatabase == "", NA, linkDatabase),
+    linkDatabase     = paste(na.omit(linkDatabase), collapse = "; \n"),
+    linkDatabase     = if_else(linkDatabase == "", NA, linkDatabase),
+    
+    #can use first because not multiple countries, datatypes etc
+    countryDatabase  = if_else(nameDatabase != "NI",
+                               first(na.omit(countryDatabase)),
+                               countryDatabase),
+    dataTypeDatabase = if_else(nameDatabase != "NI",
+                               first(na.omit(dataTypeDatabase)),
+                               dataTypeDatabase),
+    statusDataCollectionDatabase = if_else(
+                                          str_detect(
+                                            statusDataCollectionDatabase,
+                                            "Other:"), 
+                                          NA, 
+                                          statusDataCollectionDatabase),
+    statusDataCollectionDatabase = if_else(
+                                           nameDatabase != "NI",
+                                           first(na.omit(
+                                            statusDataCollectionDatabase)),
+                                           statusDataCollectionDatabase),
+    dataAvailabilityDatabase = if_else(
+                                       str_detect(dataAvailabilityDatabase,
+                                                  "Other:"), 
+                                       NA, 
+                                       dataAvailabilityDatabase),
+    dataAvailabilityDatabase = case_when(
+      nameDatabase == "NI" ~ dataAvailabilityDatabase,
+      nameDatabase == "New York-Presbyterian Columbia University Irving Medical Center (NYP-CUIMC)" ~ "No",
+      nameDatabase == "Hospital-based surveillance of COVID-19 and influenza cases in CH" ~ "No",
+      TRUE ~ first(na.omit(dataAvailabilityDatabase)))) |>
+  ungroup() |> 
+  create_datatype_columns()
+
+  
+
+databases_2 <- data_strategy2_clean |> 
+  filter(nameDatabase != "NI") |> 
+  select(nameDatabase, 
+         countryDatabase, 
+         dataTypeDatabase, 
+         dataAvailabilityDatabase, 
+         statusDataCollectionDatabase, 
+         linkDatabase) |> 
+  create_datatype_columns() |> 
+  #remove "Database" from end of all colum names
+  rename_with(~gsub("Database$", "", .)) |> 
+  group_by(name) |> 
+  mutate(n = n()) |> 
+  slice_head(n = 1) |> 
+  arrange(desc(n))
+
+```
+
+```{r gsheet}
+#| echo: false
+#| output: false
+
+databases_combined <- databases_1 |> 
+  bind_rows(databases_2) |> 
+  mutate(statusDataCollection = if_else(
+    is.na(statusDataCollection), "NI",   statusDataCollection)) |> 
+  group_by(name) |> 
+  mutate(n = sum(n)) |> 
+  arrange(name, country, dataType, dataAvailability, statusDataCollection) |> 
+  slice_head(n = 1) |> 
+  ungroup() |> 
+  arrange(desc(n), name, dataType) |> 
+  rename(ongoing = statusDataCollection,
+         public  = dataAvailability)
+  
+# databases which clearily don't correspond to criteria inhospital.
+# not clear why not excluded during full text screening
+
+outpatient_db <- c("iCTCF dataset", 
+                   "Hospital Episode Statistics", 
+                   "National (Nationwide) Inpatient Sample (NIS)",
+                   "CXR8",
+                   "Clinical Practice Research Datalink (CPRD)",
+                   "Health and Economic Modelling of AMR in Australia (HEMAA) population-level simulation model ",
+                   "Avon Longitudinal Study of Parents and Children (ALSPAC)",
+                   "Public Health England",
+                   "Covid 19 HGI"
+                   )
+
+databases_filtered <- databases_combined |>
+  filter(!(name %in% outpatient_db))
+
+#push to public google sheets
+library(googlesheets4)
+sheet_write(databases_filtered, 
+            ss = "1wd5J4DbK-xmv-R2u4MwS-9QJVCIsb9tOVSwK5fex_Qc", 
+            sheet = "databases_combined")
+```
+
+## Introduction
+
+Target trial emulation (TTE) uses observational data together with robust methods to answer causal questions about the effectiveness and safety of interventions, where randomized controlled trials would not be feasible [@matthews2022]. In case of a new pandemic, TTE could be used to quickly expand upon the evidence generated by randomized controlled trials (RCT) and identify promising interventions for further investigation.
+
+High quality TTE require detailed data on treandefinedtments, outcomes, and potential confounding factors [@hernán2022]. However, a systematic overview of databases suitable for conduction TTE is currently lacking, which could hinder a rapid response capabilities in case of a new pandemic.
+
+We therefore conducted a scoping review to identify and characterize databases potentially suitable for TTE studies during public health emergencies. This review aims to provide researchers and public health decision-makers with a comprehensive overview of available data resources for rapid evidence generation during future pandemics.
+
+## Methods
+
+Search Strategy We employed two complementary search strategies to identify potentially suitable databases for target trial emulations in infectious respiratory diseases.
+
+The first strategy identified databases indirectly through published comparative effectiveness studies that employed causal inference methods in inpatient settings. We searched MEDLINE (via Ovid) and Embase using a search string adapted from Smit et al. [@smit2022], combining terms related to causal inference methods, comparative effectiveness research, observational studies, and respiratory infections in hospital settings (full search strategy available in @sec-appendix-a).
+
+The second strategy aimed to directly identify suitable databases. We adapted the search string developed by Sauer et al. [@sauer2022] to identify healthcare databases capable of supporting clinical research in infectious diseases. This search was also conducted in MEDLINE (via Ovid) and Embase (full search strategy available in @sec-appendix-a).
+
+The systematic search was conducted from 2023-11-22 to 2024-11-25. Title and abstract screening, full-text review, and data extraction were all performed independently by two reviewers using [covidence](https://covidence.org/). Any disagreements at any stage were resolved through discussion with a third reviewer when necessary.
+
+## Results
+
+Through search strategy 1 and two we identified 142 and 15 publications respectively (see @fig-strat-1 and @fig-strat-2). We identified `r nrow(databases_filtered)` databases underlying these publications (see @tbl-databases).
+
+::: {#fig-flowcharts layout="[49,-2,49]" layout-valign="top"}
+![Strategy one.](images/clipboard-3644552594.png){#fig-strat-1 width="100%"}
+
+![Strategy two.](images/clipboard-673675682.png){#fig-strat-2 width="100%"}
+
+PRSMA flowcharts for search strategy one and two.
+:::
+
+Unfortunately, the full text screening wasn't very specific. During extraction it became apparent that some databases contained exclusively outpatient or bio banking data.[^1] These databases (n = `r length(outpatient_db)`) were excluded from this report.
+
+[^1]: The excluded databases are : `r paste(outpatient_db, collapse = ", ")`.
+
+Summary statistics of the remaining databases.
+
+-   Judging from the publication only `r table(databases_filtered$ongoing == "Yes")[2]` (`r round(mean(databases_filtered$ongoing == "Yes") * 100)`%) of the databases are likely still collecting data
+    -   For `r table(databases_filtered$ongoing == "NI")[2]` databases it was not clear whether data were still being collected
+    -   For `r table(databases_filtered$ongoing == "No")[2]` databases it was clear that data collection had stopped
+-   It was not possible to reliably extract how the underlying data of each publication could be accesses for further research purposes
+    -   Only `r table(databases_filtered$public == "Yes")[2]` (`r round(mean(databases_filtered$public == "Yes", na.rm = TRUE) * 100)`%) clearly stated that data was publicly available
+
+```{r}
+#| label: fig-bars
+#| echo: false
+
+p1 <- ggplot(databases_filtered, aes(x = 1, fill = ongoing)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Data Collection Ongoing?",
+    y = "Proportion",
+    fill = "",
+    x = ""
+  ) +
+  theme_light() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())  
+  #theme(legend.position = "bottom")
+
+p2 <- ggplot(databases_filtered, aes(x = 1, fill = public)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Data public?",
+    y = "",
+    fill = "",
+    x = ""
+  ) +
+  theme_light() +
+  theme(legend.position = "",
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())
+
+#insure or claims?
+p3 <- databases_filtered |> 
+  mutate(type = case_when(
+    type_ehr == 1 & type_insurance_claims == 0 ~ "ehr",
+    type_ehr == 0 & type_insurance_claims == 1 ~ "insurance / claims",
+    type_ehr == 1 & type_insurance_claims == 1 ~ "both",
+    TRUE ~ "other"
+  )) |> 
+  ggplot(aes(x = 1, fill = type)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Type of Database",
+    y = "Proportion",
+    x = "",
+    fill = ""
+  ) +
+  theme_light() +
+  theme(
+   axis.title.x = element_blank(),
+   axis.text.x = element_blank(),
+   axis.ticks.x = element_blank(),
+   legend.position = "bottom")
+
+p4 <- databases_filtered |> 
+  mutate(country = fct_lump_n(country, n = 5)) |> 
+  ggplot(aes(x = 1, fill = country)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Countries",
+    y = "Proportion",
+    x = "",
+    fill = ""
+  ) +
+  theme_light() +
+  theme(
+   axis.title.x = element_blank(),
+   axis.text.x = element_blank(),
+   axis.ticks.x = element_blank(),
+   legend.position = "bottom")
+
+(p1 | p2)
+
+```
 
 ```{r}
 #| echo: false
-flextable(databases)
+#| label: tbl-databases
+#| tbl-cap: "The top 5 databases ordered by number of studies identified using their data."
+
+databases_filtered |>
+  select(-c(link, type_ehr, type_insurance_claims, type_dz_cohort, type_national_registry, type_other)) |> 
+  slice_head(n = 5) |> 
+  flextable() |> 
+  fit_to_width(7)
 ```
+
+A more complete overview of the found databases can be found [here](https://docs.google.com/spreadsheets/d/1wd5J4DbK-xmv-R2u4MwS-9QJVCIsb9tOVSwK5fex_Qc/edit?gid=612542203#gid=612542203).
 
 ## What next?
 
@@ -207,3 +618,98 @@ Analogous approach to Sauer et al. ?
 -   Defined a priori list of database elements to document and extract
 
 -   $\rightarrow$ Descriptive analyses
+
+{{< pagebreak >}}
+
+## Appendix A {#sec-appendix-a}
+
+### Search string for strategy 1
+
+#### Medline
+
+*((caus\* adj3 (inferen\* or model\*)) or ((causal or average-treatment\* or individuali\*-treatment\* or personali\*-treatment\*) adj (effect\* or method\*)) or time-vary\*-confound\* or g-computation\* or g-estimation\* or g-formula\* or doubly-robust-estimation\* or counterfactual\* or (inverse-probabilit\* adj3 (weight\* or estimat\*)) or ((marginal-structur\* or structural-nest\* or causal-effect\* or causal-graphic\* or causal-inferen\* or semi-paramet\* or semiparamet\* or fully-paramet\*) adj3 (method\* or model\*)) or TAR-Net or (Treatment\*-Agnost\* adj3 Representat\* adj3 Network\*) or double-machine-learning or anchor\*-regress\* or x- learner\* or t-learner\* or s-learner\* or q-learning or q-network or reinforcement\*-learn\* or ((policy or value) adj iteration\*) or temporal-differen\* or actor-critic\* or (Markov adj3 decision adj3 process\*)).ab,ti. or (RL or IRL).ti.*
+
+*AND*
+
+*(exp "Respiratory Tract Infections"/)*
+
+*AND*
+
+*((exp Hospitals/) or hospital\* or "secondary care")*
+
+##### Hits
+
+-   22/11/2023: 1164 hits
+
+-   22/11/2023: With ((exp Hospitals/) or hospital\*.ti,ab,kw. or "secondary care".ti,ab,kw.): 422 hits
+
+-   25/11/2023: With ((exp Hospitals/) or hospital\* or "secondary care"): 437 hits
+
+#### Embase
+
+*((caus\* adj3 (inferen\* or model\*)) or ((causal or average-treatment\* or individuali\*-treatment\* or personali\*-treatment\*) adj (effect\* or method\*)) or time-vary\*-confound\* or g-computation\* or g-estimation\* or g-formula\* or doubly-robust-estimation\* or counterfactual\* or (inverse-probabilit\* adj3 (weight\* or estimat\*)) or ((marginal-structur\* or structural-nest\* or causal-effect\* or causal-graphic\* or causal-inferen\* or semi-paramet\* or semiparamet\* or fully-paramet\*) adj3 (method\* or model\*)) or TAR-Net or (Treatment\*-Agnost\* adj3 Representat\* adj3 Network\*) or double-machine-learning or anchor\*-regress\* or x- learner\* or t-learner\* or s-learner\* or q-learning or q-network or reinforcement\*-learn\* or ((policy or value) adj iteration\*) or temporal-differen\* or actor-critic\* or (Markov adj3 decision adj3 process\*)).ab,ti. or (RL or IRL).ti.*
+
+*AND*
+
+*(exp "respiratory tract infection"/)*
+
+*AND*
+
+*((exp hospital/) or hospital\* or "secondary care")*
+
+##### Hits
+
+-   25/11/2023: 284 hits
+
+### Search string for strategy 2
+
+#### Medline
+
+*("Data Warehousing"/) OR ("datawarehous\*".ti,ab,kw.) OR ("Database Management Systems"/) OR ("dataset\*".ti,ab,kw.) OR ("data set\*".ti,ab,kw.) OR ("database\*".ti,ab,kw.)*
+
+*AND*
+
+*(("publicly available" OR "free of charge" OR "freely accessible" OR "publicly accessible").ti,ab,kw.)*
+
+*AND*
+
+*(exp "Respiratory Tract Infections"/)*
+
+*AND*
+
+*((exp Hospitals/) or hospital\* or "secondary care")*
+
+##### *Hits*
+
+-   22/11/2023: 557 hits
+
+-   22/11/2023: With ((exp Hospitals/) or hospital\*.ti,ab,kw. or "secondary care".ti,ab,kw.): 74 hits
+
+-   25/11/2023: With ((exp Hospitals/) or hospital\* or "secondary care"): 78 hits
+
+    #### Embase
+
+*("data warehouse"/) OR ("datawarehous\*".ti,ab,kw.) OR ("database management system\*"/) OR ("dataset\*".ti,ab,kw.) OR ("data set\*".ti,ab,kw.) OR ("database\*".ti,ab,kw.)*
+
+*AND*
+
+*(("publicly available" OR "free of charge" OR "freely accessible" OR "publicly accessible").ti,ab,kw.)*
+
+*AND*
+
+*(exp "respiratory tract infection"/)*
+
+*AND*
+
+*((exp hospital/) or hospital\* or "secondary care")*
+
+##### Hits
+
+-   25/11/2023: 46 hits
+
+{{< pagebreak >}}
+
+## References
+
+::: {#refs}
+:::
