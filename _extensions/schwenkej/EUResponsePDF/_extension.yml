@@ -1,6 +1,6 @@
-title: PrettyPDF
-author: Nicola Rennie
-version: 0.0.5
+title: EUReponsePDF
+author: Johannes Schwenke
+version: 0.0.1
 contributes:
   project:
     project:
@@ -8,7 +8,7 @@ contributes:
   formats: 
     pdf:
       include-in-header: 
-       - "PrettyPDF.tex"
+       - "EUResponsePDF.tex"
       include-before-body:
        - "pagestyle.tex"
       toc: false
