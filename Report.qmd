@@ -446,6 +446,22 @@ databases_combined <- databases_1 |>
   arrange(desc(n), name, dataType) |> 
   rename(ongoing = statusDataCollection,
          public  = dataAvailability)
+
+publications_1 <- data_strategy1_clean |> 
+  select(nameDatabase, Title, Lead.author.contact.details) |> 
+  rename(name = nameDatabase,
+         pub_title = Title,
+         author_contact = Lead.author.contact.details) |> 
+  group_by(name) |> 
+  mutate(row_number = row_number()) |>
+  pivot_wider(
+    id_cols = name,
+    names_from = row_number,
+    values_from = c(pub_title, author_contact),
+    names_sep = "_")
+
+databases_combined <- databases_combined |> 
+  left_join(publications_1, by = "name")
   
 # databases which clearily don't correspond to criteria inhospital.
 # not clear why not excluded during full text screening
