@@ -58,16 +58,19 @@ rename_questions <- function(df){
 make_db_names_uniform <- function(df){
   df |> 
     mutate(
-      #make database names uniform       
+    #make database names uniform       
   across(starts_with("nameDatabase"), ~case_when(
     str_detect(., "Switzerland") ~ "Hospital-based surveillance of COVID-19 and influenza cases in CH",
     str_detect(., "(VHA)") | str_detect(., "(VA-OMOP)") ~ "Department of Veterans Health Administration (VHA) healthcare system",
     str_detect(., "KPSC") ~ "Kaiser Permanente Southern California (KPSC)",
     str_detect(., "CUIMC") ~ "New York-Presbyterian Columbia University Irving Medical Center (NYP-CUIMC)",
     str_detect(., "(?i)covid.*hgi") ~ "Covid 19 HGI",
-    str_detect(., "Mount Sinai") ~ "Mount Sinai Health System",
+    str_detect(., "(?i)m(?:ou)?unt\\s*sinai") ~ "Mount Sinai Health System",
     str_detect(., "Diagnosis Procedure Combination database") ~ "DPC Japan",
     str_detect(., "AP-?HP") ~ "AP-HP Datawarehouse",
+    str_detect(., "CDARS") ~ " Hong Kong Hospital Authority (HA)", 
+    # CDARS is part of HA
+    str_detect(., "(?i)danish") ~ "danish registries",
     TRUE ~ .
       )
     )
@@ -461,30 +464,105 @@ publications_1 <- data_strategy1_clean |>
     names_sep = "_")
 
 databases_combined <- databases_combined |> 
-  left_join(publications_1, by = "name")
+  left_join(publications_1, by = "name") |> 
+  mutate(name = trimws(name))
   
 # databases which clearily don't correspond to criteria inhospital.
 # not clear why not excluded during full text screening
 
-outpatient_db <- c("iCTCF dataset", 
-                   "Hospital Episode Statistics", 
-                   "National (Nationwide) Inpatient Sample (NIS)",
-                   "CXR8",
-                   "Clinical Practice Research Datalink (CPRD)",
-                   "Health and Economic Modelling of AMR in Australia (HEMAA) population-level simulation model ",
-                   "Avon Longitudinal Study of Parents and Children (ALSPAC)",
-                   "Public Health England",
-                   "Covid 19 HGI"
-                   )
+outpatient_db <- trimws(c(
+  #imaging only
+  "iCTCF dataset",
+  #no detailed in hospital data
+  "Hospital Episode Statistics", 
+  #no detailed in hospital data
+  "National (Nationwide) Inpatient Sample (NIS)",
+  #imaging only
+  "CXR8",
+  #Outpatient
+  "Clinical Practice Research Datalink (CPRD)",
+  #Not EHR
+  "Health and Economic Modelling of AMR in Australia (HEMAA) population-level simulation model ",
+  #Not in hospital
+  "Avon Longitudinal Study of Parents and Children (ALSPAC)",
+  #Not in hospital
+  "Public Health England",
+  #Not in hospital / GWAS daa
+  "Covid 19 HGI",
+  #Not individual level treatments
+  "Hospital-based surveillance of COVID-19 and influenza cases in CH",
+  #Imaging only
+  "Korean imaging cohort of COVID-19 (KICC-19)",
+  #terminated
+  "COVID-ALEH Registry",
+  #terminated
+  "Community-Acquired Pneumonia Organization (CAPO) International Cohort study",
+  #one time extraction from EHR into other database, no daily data
+  "Covid-Clinic-Toul cohort",
+  #terminated
+  "Mi-COVID19 Initiative"
+  ))
 
 databases_filtered <- databases_combined |>
   filter(!(name %in% outpatient_db))
 
+db_contacts_df <- read_sheet(ss = "1qLMxfufgkX5btaM9fRLcJHBaon-yOMjf1Q4Fm7Ofytg") |>
+  mutate(name = trimws(name)) |> 
+  filter(!(name %in% outpatient_db)) 
+  
+
+databases_final <- databases_filtered |> 
+  full_join(db_contacts_df, by = "name") |> 
+  select(-c(n, public)) |> 
+  arrange(name) |> 
+  mutate(
+    type_dz_cohort = case_when(
+      name %in% c("Khorshid COVID Cohort (KCC)", 
+                 "Brazilian COVID-19 Registry",
+                 "German National Pandemic Cohort Network (NAPKON)") ~ 1,
+      TRUE ~ type_dz_cohort
+    ),
+    type_national_registry = case_when(
+      name == "Norwegian Patient Registry (NPR)" ~ 1,
+      TRUE ~ type_national_registry
+    ),
+    type_insurance_claims = case_when(
+      name %in% c("HSC Honest Broker Service",
+                 "MarketScan Medicare Supplemental",
+                 "Optum Claims Data") ~ 1,
+      TRUE ~ type_insurance_claims
+    ),
+    type_ehr = case_when(
+      name == "HSC Honest Broker Service" ~ 1,
+      TRUE ~ type_ehr
+    ),
+    ongoing = case_when(
+      ongoing == "Yes" ~ 1, 
+      ongoing == "No"  ~ 2,
+      TRUE ~ 3
+    )
+  ) |> 
+  mutate(
+   across(c(type_ehr, 
+            type_insurance_claims, 
+            type_dz_cohort, 
+            type_national_registry),
+          ~ifelse(is.na(.), 0, .))
+  ) |> 
+  mutate(record_id = row_number()) |> 
+  rename(datatype = dataType) |> 
+  relocate(c(record_id, name, 
+             name_contact_person_db, 
+             email_contact_person_db, 
+             link_contact_form))
+  
+
 #push to public google sheets
-library(googlesheets4)
-sheet_write(databases_filtered, 
-            ss = "1wd5J4DbK-xmv-R2u4MwS-9QJVCIsb9tOVSwK5fex_Qc", 
-            sheet = "databases_combined")
+sheet_write(databases_final, 
+           ss = "1kHGrMb61aoRJyZwauhe9aLJfPmCeSbQ84be7ujLF-xM", 
+           sheet = "final")
+
+write_csv(databases_final, "data.csv")
 ```
 
 ## Summary
